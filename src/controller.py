@@ -98,7 +98,7 @@ class EnergyController:
 
         return pd.DataFrame(self.results)    
     
-    def save_results(self, filename="energy_results.csv"):
+    def save_results(self, filename="data/energy_results.csv"):
         df = self.get_dataframe()
 
         df.to_csv(filename, index=False)

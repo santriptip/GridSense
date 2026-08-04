@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 # Load simulation data
-df = pd.read_csv("energy_results.csv")
+df = pd.read_csv("data/energy_results.csv")
 
 
 # 1. Load vs Solar
@@ -28,7 +28,12 @@ plt.title("House Demand vs Solar Generation")
 plt.legend()
 plt.grid()
 
-plt.savefig("load_vs_solar.png")
+plt.savefig(
+    "figures/load_vs_solar.png",
+    bbox_inches="tight"
+)
+
+plt.close()
 
 
 # 2. Battery State of Charge
@@ -45,7 +50,12 @@ plt.title("Battery State of Charge")
 
 plt.grid()
 
-plt.savefig("battery_soc.png")
+plt.savefig(
+    "figures/battery_soc.png",
+    bbox_inches="tight"
+)
+
+plt.close()
 
 
 # 3. Grid Usage
@@ -62,4 +72,9 @@ plt.title("Grid Dependence")
 
 plt.grid()
 
-plt.savefig("grid_usage.png")
+plt.savefig(
+    "figures/grid_usage.png",
+    bbox_inches="tight"
+)
+
+plt.close()
