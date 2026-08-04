@@ -21,6 +21,9 @@ class Battery:
 
     @property
     def soc(self):
+        if self.capacity_kwh == 0:
+            return 0
+
         return self.energy / self.capacity_kwh
 
     def charge(self, power_w):

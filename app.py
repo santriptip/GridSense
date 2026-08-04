@@ -1,11 +1,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 
-from src.house import House
-from src.solar import SolarPanel
-from src.battery import Battery
-from src.tariffs import Tariff
-from src.controller import EnergyController
+from src.simulation import run_simulation
+from src.config import SimulationConfig
 from src.metrics import EnergyMetrics
 
 
@@ -24,49 +21,6 @@ st.write(
     "Simulation and analysis platform for residential "
     "solar generation, battery storage, and grid interaction."
 )
-
-
-# ----------------------------
-# Simulation function
-# ----------------------------
-
-@st.cache_data
-def run_simulation_model(
-    solar_capacity,
-    battery_capacity,
-    weather_factor,
-    initial_soc,
-    peak_price,
-    off_peak_price
-):
-
-    house = House()
-
-    solar = SolarPanel(
-        capacity_kw=solar_capacity,
-        weather_factor=weather_factor
-    )
-
-    battery = Battery(
-        capacity_kwh=battery_capacity,
-        soc=initial_soc / 100
-    )
-
-    tariff = Tariff(
-        peak_price=peak_price,
-        off_peak_price=off_peak_price
-    )
-
-    controller = EnergyController(
-        house,
-        solar,
-        battery,
-        tariff
-    )
-
-    controller.simulate_day()
-
-    return controller.get_dataframe()
 
 
 # ----------------------------
@@ -138,25 +92,25 @@ off_peak_price = st.sidebar.slider(
 )
 
 
-run_button = st.sidebar.button(
-    "Run Simulation"
-)
+run_button = st.sidebar.button("Run Simulation")
 
 
 # ----------------------------
-# Run simulation only on button
+# Run simulation
 # ----------------------------
 
 if run_button:
 
-    st.session_state.df = run_simulation_model(
-        solar_capacity,
-        battery_capacity,
-        weather_factor,
-        initial_soc,
-        peak_price,
-        off_peak_price
+    config = SimulationConfig(
+        solar_capacity_kw=solar_capacity,
+        battery_capacity_kwh=battery_capacity,
+        weather_factor=weather_factor,
+        initial_soc=initial_soc / 100,
+        peak_price=peak_price,
+        off_peak_price=off_peak_price
     )
+
+    st.session_state.df = run_simulation(config)
 
 
 # ----------------------------
@@ -182,9 +136,7 @@ else:
 
     st.header("Performance Metrics")
 
-
     col1, col2, col3, col4 = st.columns(4)
-
 
     with col1:
         st.metric(
@@ -192,20 +144,17 @@ else:
             f"{metrics.total_load_energy():.2f} kWh"
         )
 
-
     with col2:
         st.metric(
             "Solar Generation",
             f"{metrics.total_solar_energy():.2f} kWh"
         )
 
-
     with col3:
         st.metric(
             "Grid Import",
             f"{metrics.grid_energy_used():.2f} kWh"
         )
-
 
     with col4:
         st.metric(
@@ -220,12 +169,7 @@ else:
 
     st.header("Power Profile")
 
-
-    fig, ax = plt.subplots(
-        figsize=(10, 4),
-        dpi=100
-    )
-
+    fig, ax = plt.subplots(figsize=(10, 4))
 
     ax.plot(
         df["hour"],
@@ -239,7 +183,6 @@ else:
         label="Solar Generation"
     )
 
-
     ax.set_xlabel("Hour")
     ax.set_ylabel("Power (W)")
     ax.set_title("House Load and Solar Generation")
@@ -247,11 +190,7 @@ else:
     ax.legend()
     ax.grid()
 
-
-    st.pyplot(
-        fig,
-        clear_figure=True
-    )
+    st.pyplot(fig)
 
 
     # ------------------------
@@ -260,50 +199,34 @@ else:
 
     st.header("Battery State of Charge")
 
-
-    fig, ax = plt.subplots(
-        figsize=(10, 4),
-        dpi=100
-    )
-
+    fig, ax = plt.subplots(figsize=(10, 4))
 
     ax.plot(
         df["hour"],
         df["battery_soc"]
     )
 
-
     ax.set_xlabel("Hour")
-    ax.set_ylabel("State of Charge (%)")
+    ax.set_ylabel("State of Charge")
     ax.set_title("Battery Storage Profile")
 
     ax.grid()
 
-
-    st.pyplot(
-        fig,
-        clear_figure=True
-    )
+    st.pyplot(fig)
 
 
     # ------------------------
-    # Grid import
+    # Grid profile
     # ------------------------
 
     st.header("Grid Import Profile")
 
-
-    fig, ax = plt.subplots(
-        figsize=(10, 4),
-        dpi=100
-    )
-
+    fig, ax = plt.subplots(figsize=(10, 4))
 
     ax.bar(
         df["hour"],
         df["grid"]
     )
-
 
     ax.set_xlabel("Hour")
     ax.set_ylabel("Grid Power (W)")
@@ -311,17 +234,12 @@ else:
 
     ax.grid()
 
-
-    st.pyplot(
-        fig,
-        clear_figure=True
-    )
+    st.pyplot(fig)
 
 
     # ------------------------
-    # Data table
+    # Raw data
     # ------------------------
 
     with st.expander("Simulation Data"):
-
         st.dataframe(df)
