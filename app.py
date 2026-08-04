@@ -14,252 +14,314 @@ from src.metrics import EnergyMetrics
 # ----------------------------
 
 st.set_page_config(
-    page_title="GridSense",
-    page_icon="⚡",
+    page_title="GridSense Energy Dashboard",
     layout="wide"
 )
 
-st.title("⚡ GridSense Energy Dashboard")
+st.title("GridSense Energy Dashboard")
 
 st.write(
-    "Residential microgrid simulation platform "
-    "for solar generation, battery storage, and electricity tariffs."
+    "Simulation and analysis platform for residential "
+    "solar generation, battery storage, and grid interaction."
 )
+
+
+# ----------------------------
+# Simulation function
+# ----------------------------
+
+@st.cache_data
+def run_simulation_model(
+    solar_capacity,
+    battery_capacity,
+    weather_factor,
+    initial_soc,
+    peak_price,
+    off_peak_price
+):
+
+    house = House()
+
+    solar = SolarPanel(
+        capacity_kw=solar_capacity,
+        weather_factor=weather_factor
+    )
+
+    battery = Battery(
+        capacity_kwh=battery_capacity,
+        soc=initial_soc / 100
+    )
+
+    tariff = Tariff(
+        peak_price=peak_price,
+        off_peak_price=off_peak_price
+    )
+
+    controller = EnergyController(
+        house,
+        solar,
+        battery,
+        tariff
+    )
+
+    controller.simulate_day()
+
+    return controller.get_dataframe()
+
+
+# ----------------------------
+# Session state
+# ----------------------------
+
+if "df" not in st.session_state:
+    st.session_state.df = None
 
 
 # ----------------------------
 # Sidebar controls
 # ----------------------------
 
-st.sidebar.header("Simulation Settings")
+st.sidebar.header("System Parameters")
 
 
 solar_capacity = st.sidebar.slider(
     "Solar Capacity (kW)",
-    min_value=1.0,
-    max_value=10.0,
-    value=3.0,
-    step=0.5
+    1.0,
+    10.0,
+    3.0,
+    0.5
 )
 
 
 battery_capacity = st.sidebar.slider(
     "Battery Capacity (kWh)",
-    min_value=1.0,
-    max_value=30.0,
-    value=10.0,
-    step=1.0
+    1.0,
+    30.0,
+    10.0,
+    1.0
 )
 
 
 weather_factor = st.sidebar.slider(
     "Weather Factor",
-    min_value=0.3,
-    max_value=1.0,
-    value=0.9,
-    step=0.05
+    0.3,
+    1.0,
+    0.9,
+    0.05
 )
 
 
 initial_soc = st.sidebar.slider(
     "Initial Battery Charge (%)",
-    min_value=0,
-    max_value=100,
-    value=50,
-    step=5
+    0,
+    100,
+    50,
+    5
 )
 
 
 peak_price = st.sidebar.slider(
     "Peak Electricity Price ($/kWh)",
-    min_value=0.1,
-    max_value=1.0,
-    value=0.4,
-    step=0.05
+    0.1,
+    1.0,
+    0.4,
+    0.05
 )
 
 
 off_peak_price = st.sidebar.slider(
     "Off-Peak Electricity Price ($/kWh)",
-    min_value=0.05,
-    max_value=0.5,
-    value=0.2,
-    step=0.05
+    0.05,
+    0.5,
+    0.2,
+    0.05
+)
+
+
+run_button = st.sidebar.button(
+    "Run Simulation"
 )
 
 
 # ----------------------------
-# Run simulation
+# Run simulation only on button
 # ----------------------------
 
-house = House()
+if run_button:
 
-
-solar = SolarPanel(
-    capacity_kw=solar_capacity,
-    weather_factor=weather_factor
-)
-
-
-battery = Battery(
-    capacity_kwh=battery_capacity,
-    soc=initial_soc / 100
-)
-
-
-tariff = Tariff(
-    peak_price=peak_price,
-    off_peak_price=off_peak_price
-)
-
-
-controller = EnergyController(
-    house,
-    solar,
-    battery,
-    tariff
-)
-
-
-controller.simulate_day()
-
-
-df = controller.get_dataframe()
-
-
-# ----------------------------
-# Metrics
-# ----------------------------
-
-metrics = EnergyMetrics(df)
-
-
-st.header("System Performance")
-
-
-col1, col2, col3, col4 = st.columns(4)
-
-
-with col1:
-    st.metric(
-        "Daily Consumption",
-        f"{metrics.total_load_energy():.2f} kWh"
-    )
-
-
-with col2:
-    st.metric(
-        "Solar Generated",
-        f"{metrics.total_solar_energy():.2f} kWh"
-    )
-
-
-with col3:
-    st.metric(
-        "Grid Energy",
-        f"{metrics.grid_energy_used():.2f} kWh"
-    )
-
-
-with col4:
-    st.metric(
-        "Daily Cost",
-        f"${metrics.total_cost():.2f}"
+    st.session_state.df = run_simulation_model(
+        solar_capacity,
+        battery_capacity,
+        weather_factor,
+        initial_soc,
+        peak_price,
+        off_peak_price
     )
 
 
 # ----------------------------
-# Load vs Solar Plot
+# Display results
 # ----------------------------
 
-st.header("Power Generation Profile")
+if st.session_state.df is None:
+
+    st.info(
+        "Configure the system parameters and run the simulation."
+    )
+
+else:
+
+    df = st.session_state.df
+
+    metrics = EnergyMetrics(df)
 
 
-fig, ax = plt.subplots(figsize=(10, 4))
+    # ------------------------
+    # Metrics
+    # ------------------------
+
+    st.header("Performance Metrics")
 
 
-ax.plot(
-    df["hour"],
-    df["load"],
-    label="House Load"
-)
+    col1, col2, col3, col4 = st.columns(4)
 
 
-ax.plot(
-    df["hour"],
-    df["solar"],
-    label="Solar Generation"
-)
+    with col1:
+        st.metric(
+            "Daily Energy Consumption",
+            f"{metrics.total_load_energy():.2f} kWh"
+        )
 
 
-ax.set_xlabel("Hour")
-ax.set_ylabel("Power (W)")
-ax.set_title("Load vs Solar Generation")
-
-ax.legend()
-ax.grid()
-
-
-st.pyplot(fig)
+    with col2:
+        st.metric(
+            "Solar Generation",
+            f"{metrics.total_solar_energy():.2f} kWh"
+        )
 
 
-# ----------------------------
-# Battery Plot
-# ----------------------------
-
-st.header("Battery State of Charge")
-
-
-fig, ax = plt.subplots(figsize=(10, 4))
+    with col3:
+        st.metric(
+            "Grid Import",
+            f"{metrics.grid_energy_used():.2f} kWh"
+        )
 
 
-ax.plot(
-    df["hour"],
-    df["battery_soc"]
-)
+    with col4:
+        st.metric(
+            "Operating Cost",
+            f"${metrics.total_cost():.2f}"
+        )
 
 
-ax.set_xlabel("Hour")
-ax.set_ylabel("SoC (%)")
-ax.set_title("Battery Charging Profile")
+    # ------------------------
+    # Power profile
+    # ------------------------
 
-ax.grid()
-
-
-st.pyplot(fig)
+    st.header("Power Profile")
 
 
-# ----------------------------
-# Grid Usage Plot
-# ----------------------------
-
-st.header("Grid Dependency")
-
-
-fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(
+        figsize=(10, 4),
+        dpi=100
+    )
 
 
-ax.bar(
-    df["hour"],
-    df["grid"]
-)
+    ax.plot(
+        df["hour"],
+        df["load"],
+        label="House Load"
+    )
+
+    ax.plot(
+        df["hour"],
+        df["solar"],
+        label="Solar Generation"
+    )
 
 
-ax.set_xlabel("Hour")
-ax.set_ylabel("Grid Power (W)")
-ax.set_title("Grid Import")
+    ax.set_xlabel("Hour")
+    ax.set_ylabel("Power (W)")
+    ax.set_title("House Load and Solar Generation")
+
+    ax.legend()
+    ax.grid()
 
 
-ax.grid()
+    st.pyplot(
+        fig,
+        clear_figure=True
+    )
 
 
-st.pyplot(fig)
+    # ------------------------
+    # Battery profile
+    # ------------------------
+
+    st.header("Battery State of Charge")
 
 
-# ----------------------------
-# Raw Data
-# ----------------------------
+    fig, ax = plt.subplots(
+        figsize=(10, 4),
+        dpi=100
+    )
 
-with st.expander("View Simulation Data"):
 
-    st.dataframe(df)
+    ax.plot(
+        df["hour"],
+        df["battery_soc"]
+    )
+
+
+    ax.set_xlabel("Hour")
+    ax.set_ylabel("State of Charge (%)")
+    ax.set_title("Battery Storage Profile")
+
+    ax.grid()
+
+
+    st.pyplot(
+        fig,
+        clear_figure=True
+    )
+
+
+    # ------------------------
+    # Grid import
+    # ------------------------
+
+    st.header("Grid Import Profile")
+
+
+    fig, ax = plt.subplots(
+        figsize=(10, 4),
+        dpi=100
+    )
+
+
+    ax.bar(
+        df["hour"],
+        df["grid"]
+    )
+
+
+    ax.set_xlabel("Hour")
+    ax.set_ylabel("Grid Power (W)")
+    ax.set_title("Grid Electricity Usage")
+
+    ax.grid()
+
+
+    st.pyplot(
+        fig,
+        clear_figure=True
+    )
+
+
+    # ------------------------
+    # Data table
+    # ------------------------
+
+    with st.expander("Simulation Data"):
+
+        st.dataframe(df)
