@@ -1,3 +1,5 @@
+import pandas as pd
+
 class EnergyController:
 
     def __init__(self, house, solar, battery, tariff):
@@ -91,3 +93,14 @@ class EnergyController:
         print(
             f"Total Daily Cost: ${self.total_cost:.2f}"
         )
+
+    def get_dataframe(self):
+
+        return pd.DataFrame(self.results)    
+    
+    def save_results(self, filename="energy_results.csv"):
+        df = self.get_dataframe()
+
+        df.to_csv(filename, index=False)
+
+        print(f"Saved results to {filename}")
