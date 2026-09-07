@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class EnergyController:
 
     def __init__(self, house, solar, battery, tariff):
@@ -13,10 +14,24 @@ class EnergyController:
         self.total_cost = 0
 
 
-    def simulate_day(self):
+    def simulate_day(self, day=1, reset=False):
 
-        self.results = []
-        self.total_cost = 0
+        """
+        Simulate one day of operation.
+
+        Parameters
+        ----------
+        day : int
+            Simulation day number.
+
+        reset : bool
+            Clears previous results if starting a new simulation.
+        """
+
+        if reset:
+            self.results = []
+            self.total_cost = 0
+
 
         for hour in range(24):
 
@@ -29,22 +44,24 @@ class EnergyController:
             grid_power = 0
 
 
-            # Solar produces more than the house needs
+            # Excess solar
             if net_power > 0:
 
-                excess_power = net_power
-
-                self.battery.charge(excess_power)
+                self.battery.charge(net_power)
 
 
-            # House needs more power than solar provides
+            # Solar deficit
             else:
 
                 deficit = abs(net_power)
 
-                battery_power = self.battery.discharge(deficit)
+                battery_power = self.battery.discharge(
+                    deficit
+                )
 
-                remaining_deficit = deficit - battery_power
+                remaining_deficit = (
+                    deficit - battery_power
+                )
 
 
                 if remaining_deficit > 0:
@@ -52,7 +69,6 @@ class EnergyController:
                     grid_power = remaining_deficit
 
 
-            # Calculate electricity cost
             cost = self.tariff.calculate_cost(
                 grid_power,
                 hour
@@ -63,6 +79,7 @@ class EnergyController:
 
             self.results.append(
                 {
+                    "day": day,
                     "hour": hour,
                     "load": load,
                     "solar": solar_power,
@@ -80,6 +97,7 @@ class EnergyController:
         for result in self.results:
 
             print(
+                f"Day {result['day']} "
                 f"{result['hour']:02d}:00 | "
                 f"Load: {result['load']:.0f} W | "
                 f"Solar: {result['solar']:.0f} W | "
@@ -91,14 +109,17 @@ class EnergyController:
 
         print("\n==============================")
         print(
-            f"Total Daily Cost: ${self.total_cost:.2f}"
+            f"Total Cost: ${self.total_cost:.2f}"
         )
+
 
     def get_dataframe(self):
 
-        return pd.DataFrame(self.results)    
-    
+        return pd.DataFrame(self.results)
+
+
     def save_results(self, filename="data/energy_results.csv"):
+
         df = self.get_dataframe()
 
         df.to_csv(filename, index=False)
