@@ -66,12 +66,12 @@ def run_simulation(
             house,
             solar,
             battery,
-            tariff
+            tariff,
+            config.peak_load_kw
         )
 
 
         controller.simulate_day(day=day + 1)
-
 
         daily_results = controller.get_dataframe()
 

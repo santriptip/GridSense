@@ -1,12 +1,12 @@
-from dataclasses import dataclass
-
-
 @dataclass
 class SimulationConfig:
 
     # Solar parameters
     solar_capacity_kw: float
     weather_factor: float = 1.0
+
+    # Load parameters
+    peak_load_kw: float = 3.0
 
     # Battery parameters
     battery_capacity_kwh: float = 10
@@ -26,6 +26,11 @@ class SimulationConfig:
         if self.solar_capacity_kw <= 0:
             raise ValueError(
                 "Solar capacity must be greater than zero."
+            )
+
+        if self.peak_load_kw <= 0:
+            raise ValueError(
+                "Peak load must be greater than zero."
             )
 
         if self.battery_capacity_kwh < 0:

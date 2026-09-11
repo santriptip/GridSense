@@ -3,16 +3,28 @@ import pandas as pd
 
 class EnergyController:
 
-    def __init__(self, house, solar, battery, tariff):
+    def __init__(self, house, solar, battery, tariff, peak_load_kw):
 
-        self.house = house
-        self.solar = solar
-        self.battery = battery
-        self.tariff = tariff
+       self.house = house
+       self.solar = solar
+       self.battery = battery
+       self.tariff = tariff
+       self.peak_load_kw = peak_load_kw
 
-        self.results = []
-        self.total_cost = 0
+    # Find the peak of the existing house profile
+       self.base_peak_load = max(
+           self.house.get_total_load(hour)
+           for hour in range(24)
+       )
+ 
+       self.load_scale = (
+           (peak_load_kw * 1000) / self.base_peak_load
+    )
 
+       self.results = []
+       self.total_cost = 0
+
+    
 
     def simulate_day(self, day=1, reset=False):
 
@@ -35,7 +47,9 @@ class EnergyController:
 
         for hour in range(24):
 
-            load = self.house.get_total_load(hour)
+            base_load = self.house.get_total_load(hour)
+
+            load = base_load * self.load_scale
 
             solar_power = self.solar.get_power(hour)
 

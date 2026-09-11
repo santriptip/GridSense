@@ -46,6 +46,13 @@ solar_capacity = st.sidebar.slider(
     0.5
 )
 
+peak_load = st.sidebar.slider(
+    "Peak House Demand (kW)",
+    0.5,
+    10.0,
+    3.0,
+    0.1
+)
 
 battery_capacity = st.sidebar.slider(
     "Battery Capacity (kWh)",
@@ -104,6 +111,7 @@ if run_button:
     config = SimulationConfig(
         solar_capacity_kw=solar_capacity,
         battery_capacity_kwh=battery_capacity,
+        peak_load_kw=peak_load,
         weather_factor=weather_factor,
         initial_soc=initial_soc / 100,
         peak_price=peak_price,
